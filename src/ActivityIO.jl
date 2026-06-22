@@ -6,7 +6,7 @@ using FileIO
 
 export ActivityPoint, FitMessage
 export parse_fit, parse_gpx, parse_tcx
-export get_records, get_records_df
+export get_records, get_records_df, load_export
 
 struct ActivityPoint
     timestamp::Union{DateTime, Missing}
@@ -126,5 +126,6 @@ function get_records(messages::Vector{FitMessage})::Vector{Dict{Symbol,Any}}
 end
 
 get_records_df(args...) = error("get_records_df requires DataFrames: `using DataFrames`")
+load_export(args...; kwargs...) = error("load_export requires CSV and DataFrames: `using CSV, DataFrames`")
 
 end # module

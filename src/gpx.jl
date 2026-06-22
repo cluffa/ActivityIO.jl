@@ -3,6 +3,7 @@ function parse_timestamp(s::AbstractString)::DateTime
     length(s) < 20 && return dt
     s[20] == 'Z' && return dt
     sign = s[20] == '+' ? 1 : -1
+    length(s) < 25 && return dt  # offset has hours only, no :MM
     h, m = parse(Int, s[21:22]), parse(Int, s[24:25])
     dt - Minute(sign * (60h + m))
 end

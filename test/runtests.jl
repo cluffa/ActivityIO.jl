@@ -2,6 +2,7 @@ using ActivityIO
 using Test
 using DataFrames
 using FileIO
+using CSV
 
 const DATA = joinpath(@__DIR__, "data")
 
@@ -95,6 +96,20 @@ const DATA = joinpath(@__DIR__, "data")
             @test df isa DataFrame
             @test !isempty(df)
             @test "timestamp" in names(df)
+        end
+    end
+
+    @testset "load_export" begin
+        export_dir = "/Users/alex/Documents/data/export_31282795"
+        if isdir(export_dir)
+            acts = load_export(export_dir; activity_type="Run")
+            @test acts isa DataFrame
+            @test !isempty(acts)
+            @test hasproperty(acts, :data)
+            @test acts.data[1] isa DataFrame
+            @test any(!isempty, acts.data)
+        else
+            @test_skip "Garmin export not available"
         end
     end
 
