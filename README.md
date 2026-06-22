@@ -1,6 +1,6 @@
 # ActivityIO.jl
 
-Load Garmin FIT, GPX, and TCX activity files in Julia.
+Load FIT, GPX, and TCX activity files in Julia. Supports Strava exports.
 
 ## Installation
 
@@ -45,6 +45,15 @@ df = get_records_df(parse_gpx("activity.gpx"))
 
 ```julia
 records = get_records(pts)   # Vector{Dict{Symbol,Any}}
+```
+
+### Load a Strava export
+
+```julia
+using ActivityIO, CSV, DataFrames
+
+runs = load_export("/path/to/strava/export"; activity_type="Run")
+# DataFrame with all activities.csv columns + :data (Vector{DataFrame} of trackpoints)
 ```
 
 ## Types

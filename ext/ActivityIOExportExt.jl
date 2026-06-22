@@ -7,7 +7,7 @@ using FileIO
 
 function ActivityIO.load_export(dir::String; activity_type::Union{String,Nothing}=nothing)
     csv_path = joinpath(dir, "activities.csv")
-    isfile(csv_path) || error("Not a Garmin export directory: activities.csv not found in $dir")
+    isfile(csv_path) || error("Not a Strava export directory: activities.csv not found in $dir")
 
     acts = CSV.read(csv_path, DataFrame; ntasks=1)
 
