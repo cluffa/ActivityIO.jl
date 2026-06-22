@@ -100,17 +100,17 @@ const DATA = joinpath(@__DIR__, "data")
     end
 
     @testset "load_export" begin
-        export_dir = "/Users/alex/Documents/data/export_31282795"
-        if isdir(export_dir)
-            acts = load_export(export_dir; activity_type="Run")
-            @test acts isa DataFrame
-            @test !isempty(acts)
-            @test hasproperty(acts, :data)
-            @test acts.data[1] isa DataFrame
-            @test any(!isempty, acts.data)
-        else
-            @test_skip "Garmin export not available"
-        end
+        export_dir = joinpath(DATA, "export")
+        acts = load_export(export_dir; activity_type="Run")
+        @test acts isa DataFrame
+        @test nrow(acts) == 3
+        @test hasproperty(acts, :data)
+        @test all(r -> r isa DataFrame, acts.data)
+        @test any(!isempty, acts.data)
+        # missing filename → empty DataFrame, not an error
+        all_acts = load_export(export_dir)
+        @test nrow(all_acts) == 4
+        @test isempty(all_acts.data[4])
     end
 
 end
