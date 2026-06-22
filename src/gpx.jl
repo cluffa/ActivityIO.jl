@@ -8,7 +8,6 @@ function parse_timestamp(s::AbstractString)::DateTime
     dt - Minute(sign * (60h + m))
 end
 
-# ponytail: Regex-based parsing to avoid heavy XML/libxml2 dependencies.
 function parse_gpx(file_path::String)::Vector{ActivityPoint}
     if !isfile(file_path)
         error("File not found: $file_path")
@@ -23,37 +22,37 @@ end
 
 function parse_gpx(io::IO)::Vector{ActivityPoint}
     content = read(io, String)
-
-    # ponytail: attrs group lets lat/lon appear in any order
-    trkpt_rx = r"<(trkpt|wpt|rtept)\s+([^>]+)>([\s\S]*?)<\/\1>"
-    lat_rx    = r"lat=\"([^\"]+)\""
-    lon_rx    = r"lon=\"([^\"]+)\""
-    ele_rx    = r"<ele>([^<]+)</ele>"
-    time_rx   = r"<time>([^<]+)</time>"
-    hr_rx     = r"<(?:gpxtpx:)?hr>([^<]+)</(?:gpxtpx:)?hr>"
-    cad_rx    = r"<(?:gpxtpx:)?cad>([^<]+)</(?:gpxtpx:)?cad>"
+    doc = parsexml(content)
+    root = root(doc)
 
     points = ActivityPoint[]
-    for m in eachmatch(trkpt_rx, content)
-        attrs = m.captures[2]
-        block = m.captures[3]
 
-        lat_m = match(lat_rx, attrs)
-        lon_m = match(lon_rx, attrs)
-        (isnothing(lat_m) || isnothing(lon_m)) && continue
+    # Handle both namespaced and non-namespaced elements
+    for elem in eachmatch(".//(trkpt|wpt|rtept)", root)
+        lat_attr = attribute(elem, "lat")
+        lon_attr = attribute(elem, "lon")
 
-        lat       = parse(Float64, lat_m.captures[1])
-        lon       = parse(Float64, lon_m.captures[1])
-        ele_m     = match(ele_rx, block)
-        ele       = isnothing(ele_m) ? missing : parse(Float64, ele_m.captures[1])
-        time_m    = match(time_rx, block)
-        timestamp = isnothing(time_m) ? missing : parse_timestamp(time_m.captures[1])
-        hr_m      = match(hr_rx, block)
-        hr        = isnothing(hr_m) ? missing : round(Int, parse(Float64, hr_m.captures[1]))
-        cad_m     = match(cad_rx, block)
-        cad       = isnothing(cad_m) ? missing : round(Int, parse(Float64, cad_m.captures[1]))
+        isnothing(lat_attr) || isnothing(lon_attr) && continue
+
+        lat = parse(Float64, lat_attr)
+        lon = parse(Float64, lon_attr)
+
+        # Extract child elements
+        ele_elem = findfirst("./ele", elem)
+        ele = isnothing(ele_elem) ? missing : parse(Float64, content(ele_elem))
+
+        time_elem = findfirst("./time", elem)
+        timestamp = isnothing(time_elem) ? missing : parse_timestamp(content(time_elem))
+
+        # Handle gpxtpx namespace for extensions
+        hr_elem = findfirst("./(hr|gpxtpx:hr)", elem)
+        hr = isnothing(hr_elem) ? missing : round(Int, parse(Float64, content(hr_elem)))
+
+        cad_elem = findfirst("./(cad|gpxtpx:cad)", elem)
+        cad = isnothing(cad_elem) ? missing : round(Int, parse(Float64, content(cad_elem)))
 
         push!(points, ActivityPoint(timestamp, lat, lon, ele, hr, cad))
     end
+
     return points
 end

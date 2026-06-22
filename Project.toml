@@ -5,26 +5,32 @@ authors = ["Alex"]
 
 [deps]
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+EzXML = "8f5d6c58-4d21-5cfd-889c-e3ad7ee6a615"
 FileIO = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
 GZip = "92fee26a-97fe-5a0c-ad85-20a5f3185b63"
 
 [weakdeps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+SQLite = "0aa819cd-b072-5ff4-a722-6bc24af294d9"
 
 [extensions]
 ActivityIODataFramesExt = "DataFrames"
 ActivityIOExportExt = ["CSV", "DataFrames"]
+ActivityIOSQLiteExt = "SQLite"
 
 [compat]
+EzXML = "1.1.1"
 FileIO = "1.19.0"
 GZip = "0.7.1"
+SQLite = "1.8.1"
 julia = "1.9"
 
 [extras]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+SQLite = "0aa819cd-b072-5ff4-923b-3ee2a6f2a6dd"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test", "DataFrames", "CSV"]
+test = ["Test", "DataFrames", "CSV", "SQLite"]

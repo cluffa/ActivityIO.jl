@@ -1,6 +1,7 @@
 module ActivityIO
 
 using Dates
+using EzXML
 using GZip
 using FileIO
 

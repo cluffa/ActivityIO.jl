@@ -25,7 +25,8 @@ function ActivityIO.load_export(dir::String; activity_type::Union{String,Nothing
         f = joinpath(dir, fname)
         try
             acts.data[i] = load(f, DataFrame)
-        catch
+        catch e
+            @warn "Failed to load file $fname" exception=e
             acts.data[i] = DataFrame()
         end
     end
