@@ -21,35 +21,28 @@ function parse_gpx(file_path::String)::Vector{ActivityPoint}
 end
 
 function parse_gpx(io::IO)::Vector{ActivityPoint}
-    content = read(io, String)
-    doc = parsexml(content)
-    root = root(doc)
+    doc = parsexml(read(io, String))
+    doc_root = root(doc)
 
     points = ActivityPoint[]
 
-    # Handle both namespaced and non-namespaced elements
-    for elem in eachmatch(".//(trkpt|wpt|rtept)", root)
-        lat_attr = attribute(elem, "lat")
-        lon_attr = attribute(elem, "lon")
+    for elem in findall(".//*[local-name()='trkpt' or local-name()='wpt' or local-name()='rtept']", doc_root)
+        haskey(elem, "lat") && haskey(elem, "lon") || continue
 
-        isnothing(lat_attr) || isnothing(lon_attr) && continue
+        lat = parse(Float64, elem["lat"])
+        lon = parse(Float64, elem["lon"])
 
-        lat = parse(Float64, lat_attr)
-        lon = parse(Float64, lon_attr)
+        ele_elem  = findfirst(".//*[local-name()='ele']", elem)
+        ele       = isnothing(ele_elem)  ? missing : parse(Float64, nodecontent(ele_elem))
 
-        # Extract child elements
-        ele_elem = findfirst("./ele", elem)
-        ele = isnothing(ele_elem) ? missing : parse(Float64, content(ele_elem))
+        time_elem = findfirst(".//*[local-name()='time']", elem)
+        timestamp = isnothing(time_elem) ? missing : parse_timestamp(nodecontent(time_elem))
 
-        time_elem = findfirst("./time", elem)
-        timestamp = isnothing(time_elem) ? missing : parse_timestamp(content(time_elem))
+        hr_elem   = findfirst(".//*[local-name()='hr']", elem)
+        hr        = isnothing(hr_elem)   ? missing : round(Int, parse(Float64, nodecontent(hr_elem)))
 
-        # Handle gpxtpx namespace for extensions
-        hr_elem = findfirst("./(hr|gpxtpx:hr)", elem)
-        hr = isnothing(hr_elem) ? missing : round(Int, parse(Float64, content(hr_elem)))
-
-        cad_elem = findfirst("./(cad|gpxtpx:cad)", elem)
-        cad = isnothing(cad_elem) ? missing : round(Int, parse(Float64, content(cad_elem)))
+        cad_elem  = findfirst(".//*[local-name()='cad']", elem)
+        cad       = isnothing(cad_elem)  ? missing : round(Int, parse(Float64, nodecontent(cad_elem)))
 
         push!(points, ActivityPoint(timestamp, lat, lon, ele, hr, cad))
     end

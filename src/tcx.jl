@@ -11,35 +11,29 @@ function parse_tcx(file_path::String)::Vector{ActivityPoint}
 end
 
 function parse_tcx(io::IO)::Vector{ActivityPoint}
-    content = read(io, String)
-    doc = parsexml(content)
-    root = root(doc)
+    doc = parsexml(read(io, String))
+    doc_root = root(doc)
 
     points = ActivityPoint[]
 
-    for trackpoint in eachmatch(".//Trackpoint", root)
-        time_elem = findfirst("./Time", trackpoint)
-        timestamp = isnothing(time_elem) ? missing : parse_timestamp(content(time_elem))
+    for trackpoint in findall(".//*[local-name()='Trackpoint']", doc_root)
+        time_elem = findfirst(".//*[local-name()='Time']", trackpoint)
+        timestamp = isnothing(time_elem) ? missing : parse_timestamp(nodecontent(time_elem))
 
-        position_elem = findfirst("./Position", trackpoint)
-        if isnothing(position_elem)
-            lat = missing
-            lon = missing
-        else
-            lat_elem = findfirst("./LatitudeDegrees", position_elem)
-            lon_elem = findfirst("./LongitudeDegrees", position_elem)
-            lat = isnothing(lat_elem) ? missing : parse(Float64, content(lat_elem))
-            lon = isnothing(lon_elem) ? missing : parse(Float64, content(lon_elem))
-        end
+        lat_elem = findfirst(".//*[local-name()='LatitudeDegrees']", trackpoint)
+        lat      = isnothing(lat_elem) ? missing : parse(Float64, nodecontent(lat_elem))
 
-        ele_elem = findfirst("./AltitudeMeters", trackpoint)
-        ele = isnothing(ele_elem) ? missing : parse(Float64, content(ele_elem))
+        lon_elem = findfirst(".//*[local-name()='LongitudeDegrees']", trackpoint)
+        lon      = isnothing(lon_elem) ? missing : parse(Float64, nodecontent(lon_elem))
 
-        hr_elem = findfirst(".//Value[parent::HeartRateBpm]", trackpoint)
-        hr = isnothing(hr_elem) ? missing : round(Int, parse(Float64, content(hr_elem)))
+        ele_elem = findfirst(".//*[local-name()='AltitudeMeters']", trackpoint)
+        ele      = isnothing(ele_elem) ? missing : parse(Float64, nodecontent(ele_elem))
 
-        cad_elem = findfirst("./Cadence", trackpoint)
-        cad = isnothing(cad_elem) ? missing : round(Int, parse(Float64, content(cad_elem)))
+        hr_elem  = findfirst(".//*[local-name()='HeartRateBpm']//*[local-name()='Value']", trackpoint)
+        hr       = isnothing(hr_elem)  ? missing : round(Int, parse(Float64, nodecontent(hr_elem)))
+
+        cad_elem = findfirst(".//*[local-name()='Cadence']", trackpoint)
+        cad      = isnothing(cad_elem) ? missing : round(Int, parse(Float64, nodecontent(cad_elem)))
 
         push!(points, ActivityPoint(timestamp, lat, lon, ele, hr, cad))
     end
