@@ -66,6 +66,13 @@ const DATA = joinpath(@__DIR__, "data")
         df = get_records_df(parse_gpx(joinpath(DATA, "sample.gpx")))
         @test "timestamp" in names(df)
         @test "position_lat" in names(df)
+        @test "distance" in names(df)
+        @test "speed" in names(df)
+        @test df.distance[1] === 0.0
+        @test all(d -> ismissing(d) || d >= 0.0, df.distance)
+        df_tcx = get_records_df(parse_tcx(joinpath(DATA, "sample.tcx")))
+        @test "distance" in names(df_tcx)
+        @test "speed" in names(df_tcx)
     end
 
     @testset "FileIO Loading" begin
