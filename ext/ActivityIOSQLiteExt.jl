@@ -26,6 +26,25 @@ function load_activities_to_db(db_path::String, files::Vector{String}; table_nam
         )
     """)
 
+    # Create headers table (FIT session summary) if it doesn't exist
+    SQLite.execute(db, """
+        CREATE TABLE IF NOT EXISTS headers (
+            activity_id INTEGER PRIMARY KEY,
+            sport TEXT,
+            sub_sport TEXT,
+            start_time DATETIME,
+            total_elapsed_time REAL,
+            total_distance REAL,
+            total_calories INTEGER,
+            avg_speed REAL,
+            avg_heart_rate INTEGER,
+            avg_cadence INTEGER,
+            total_ascent INTEGER,
+            total_descent INTEGER,
+            FOREIGN KEY(activity_id) REFERENCES activities(id)
+        )
+    """)
+
     # Create records table if it doesn't exist
     SQLite.execute(db, """
         CREATE TABLE IF NOT EXISTS $table_name (
@@ -84,7 +103,9 @@ function _insert_file(db::SQLite.DB, filepath::String, table_name::String)
 
         records = ActivityIO.get_records(points)
         name = basename(filepath)
-        sport_type = _infer_sport_type(filepath, records)
+
+        hdr = points isa Vector{ActivityIO.FitMessage} ? ActivityIO.get_header(points) : missing
+        sport_type = !ismissing(hdr) ? string(get(hdr, :sport, "unknown")) : _infer_sport_type(filepath, records)
 
         # Insert activity metadata
         SQLite.execute(db,
@@ -95,6 +116,28 @@ function _insert_file(db::SQLite.DB, filepath::String, table_name::String)
         # Get the activity ID
         activity_id = SQLite.execute(db, "SELECT id FROM activities WHERE filename = ?", [filepath]) |>
                        x -> x[1, 1]
+
+        # Insert FIT session header if available
+        if !ismissing(hdr)
+            SQLite.execute(db,
+                """INSERT OR IGNORE INTO headers
+                   (activity_id, sport, sub_sport, start_time, total_elapsed_time, total_distance,
+                    total_calories, avg_speed, avg_heart_rate, avg_cadence, total_ascent, total_descent)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                [activity_id,
+                 _str(get(hdr, :sport, missing)),
+                 _str(get(hdr, :sub_sport, missing)),
+                 get(hdr, :start_time, missing),
+                 get(hdr, :total_elapsed_time, missing),
+                 get(hdr, :total_distance, missing),
+                 get(hdr, :total_calories, missing),
+                 get(hdr, :avg_speed, missing),
+                 get(hdr, :avg_heart_rate, missing),
+                 get(hdr, :avg_cadence, missing),
+                 get(hdr, :total_ascent, missing),
+                 get(hdr, :total_descent, missing)]
+            )
+        end
 
         # Insert records
         for rec in records
@@ -114,6 +157,8 @@ function _insert_file(db::SQLite.DB, filepath::String, table_name::String)
         @warn "Failed to load $filepath: $e"
     end
 end
+
+_str(x) = ismissing(x) ? missing : string(x)
 
 function _infer_sport_type(filepath::String, records::Vector{Dict{Symbol, Any}})
     # Try to infer from filename or records
