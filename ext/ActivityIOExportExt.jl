@@ -21,14 +21,19 @@ function _load_activity(f::String)
     end
 end
 
-function ActivityIO.load_export(dir::String; activity_type::Union{String,Nothing}=nothing)
+function ActivityIO.load_export(dir::String; activity_type::Union{String,Regex,Nothing}=nothing)
     csv_path = joinpath(dir, "activities.csv")
     isfile(csv_path) || error("Not a Strava export directory: activities.csv not found in $dir")
 
     acts = CSV.read(csv_path, DataFrame; ntasks=1)
 
     if !isnothing(activity_type)
-        filter!(row -> coalesce(row["Activity Type"], "") == activity_type, acts)
+        if activity_type isa String
+            type_lower = lowercase(activity_type)
+            filter!(row -> occursin(type_lower, lowercase(coalesce(row["Activity Type"], ""))), acts)
+        else
+            filter!(row -> occursin(activity_type, coalesce(row["Activity Type"], "")), acts)
+        end
     end
 
     acts[!, :data]   = Vector{DataFrame}(undef, nrow(acts))
