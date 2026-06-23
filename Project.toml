@@ -1,6 +1,6 @@
 name = "ActivityIO"
 uuid = "2afec7c5-41b6-4525-9675-1f62227ff380"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Alex"]
 
 [deps]
