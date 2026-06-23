@@ -2,17 +2,64 @@ module ActivityIODataFramesExt
 
 using ActivityIO
 using DataFrames
+using Dates
 using FileIO
+
+function _haversine_m(lat1::Float64, lon1::Float64, lat2::Float64, lon2::Float64)::Float64
+    R = 6371000.0
+    φ1 = deg2rad(lat1)
+    φ2 = deg2rad(lat2)
+    Δφ = deg2rad(lat2 - lat1)
+    Δλ = deg2rad(lon2 - lon1)
+    a = sin(Δφ/2)^2 + cos(φ1) * cos(φ2) * sin(Δλ/2)^2
+    2.0 * R * asin(sqrt(a))
+end
 
 function ActivityIO.get_records_df(points::Vector{ActivityIO.ActivityPoint})::DataFrame
     isempty(points) && return DataFrame()
+
+    n = length(points)
+    timestamps = [p.timestamp for p in points]
+    lats       = [p.lat       for p in points]
+    lons       = [p.lon       for p in points]
+    eles       = [p.ele       for p in points]
+    hrs        = [p.hr        for p in points]
+    cads       = [p.cad       for p in points]
+
+    distance = Vector{Union{Float64, Missing}}(missing, n)
+    speed    = Vector{Union{Float64, Missing}}(missing, n)
+
+    cumulative = 0.0
+    prev_lat = missing
+    prev_lon = missing
+    prev_ts  = missing
+
+    for i in 1:n
+        lat = lats[i]
+        lon = lons[i]
+        ts  = timestamps[i]
+        (ismissing(lat) || ismissing(lon)) && continue
+        if prev_lat isa Float64
+            d = _haversine_m(prev_lat, prev_lon::Float64, lat::Float64, lon::Float64)
+            cumulative += d
+            if prev_ts isa DateTime && ts isa DateTime
+                dt = (ts - prev_ts).value / 1000.0
+                dt > 0 && (speed[i] = d / dt)
+            end
+        end
+        distance[i] = cumulative
+        prev_lat, prev_lon, prev_ts = lat, lon, ts
+    end
+
     DataFrame(
-        timestamp      = [p.timestamp for p in points],
-        position_lat   = [p.lat for p in points],
-        position_long  = [p.lon for p in points],
-        altitude       = [p.ele for p in points],
-        heart_rate     = [p.hr for p in points],
-        cadence        = [p.cad for p in points]
+        timestamp      = timestamps,
+        position_lat   = lats,
+        position_long  = lons,
+        altitude       = eles,
+        heart_rate     = hrs,
+        cadence        = cads,
+        distance       = distance,
+        speed          = speed,
     )
 end
 
