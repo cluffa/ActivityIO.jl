@@ -3,6 +3,7 @@ using Test
 using DataFrames
 using FileIO
 using CSV
+using Dates
 
 const DATA = joinpath(@__DIR__, "data")
 
@@ -111,6 +112,30 @@ const DATA = joinpath(@__DIR__, "data")
         all_acts = load_export(export_dir)
         @test nrow(all_acts) == 4
         @test isempty(all_acts.data[4])
+    end
+
+    @testset "get_header" begin
+        msgs = parse_fit(joinpath(DATA, "sample.fit.gz"))
+        h = get_header(msgs)
+        @test h isa Dict{Symbol,Any}
+        @test haskey(h, :start_time)
+        @test h[:start_time] isa DateTime
+        # total_elapsed_time must be in seconds (scaled from ms), not a raw integer
+        @test h[:total_elapsed_time] isa AbstractFloat
+        @test h[:total_elapsed_time] < 86400  # sanity: less than a day
+    end
+
+    @testset "load_export header column" begin
+        export_dir = joinpath(DATA, "export")
+        acts = load_export(export_dir)
+        @test hasproperty(acts, :header)
+        # row 1 = FIT → has session header
+        @test acts.header[1] isa Dict{Symbol,Any}
+        @test acts.header[1][:start_time] isa DateTime
+        # row 2 = GPX, row 3 = TCX, row 4 = missing filename → all missing
+        @test ismissing(acts.header[2])
+        @test ismissing(acts.header[3])
+        @test ismissing(acts.header[4])
     end
 
 end

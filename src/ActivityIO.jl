@@ -7,7 +7,7 @@ using FileIO
 
 export ActivityPoint, FitMessage
 export parse_fit, parse_gpx, parse_tcx
-export get_records, get_records_df, load_export
+export get_records, get_records_df, get_header, load_export
 
 struct ActivityPoint
     timestamp::Union{DateTime, Missing}
@@ -124,6 +124,13 @@ end
 
 function get_records(messages::Vector{FitMessage})::Vector{Dict{Symbol,Any}}
     [msg.fields for msg in messages if msg.name == :record]
+end
+
+function get_header(messages::Vector{FitMessage})::Union{Dict{Symbol,Any}, Missing}
+    for msg in messages
+        msg.name == :session && return copy(msg.fields)
+    end
+    return missing
 end
 
 get_records_df(args...) = error("get_records_df requires DataFrames: `using DataFrames`")

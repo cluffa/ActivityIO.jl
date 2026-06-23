@@ -213,6 +213,20 @@ function apply_semantic_scale!(fields::Dict{Symbol, Any}, msg_name::Symbol)
     if msg_name == :session
         st = get(fields, :start_time, missing)
         !ismissing(st) && (fields[:start_time] = GARMIN_EPOCH + Second(st::Integer))
+        for k in (:start_position_lat, :start_position_long)
+            v = get(fields, k, missing)
+            !ismissing(v) && (fields[k] = (v::Number) * 180.0 / (2^31))
+        end
+        for k in (:avg_speed, :max_speed, :enhanced_avg_speed, :enhanced_max_speed)
+            v = get(fields, k, missing)
+            !ismissing(v) && (fields[k] = (v::Number) / 1000.0)
+        end
+        dist = get(fields, :total_distance, missing)
+        !ismissing(dist) && (fields[:total_distance] = (dist::Number) / 100.0)
+        for k in (:total_elapsed_time, :total_timer_time)
+            v = get(fields, k, missing)
+            !ismissing(v) && (fields[k] = (v::Number) / 1000.0)
+        end
     elseif msg_name == :record
         lat = get(fields, :position_lat, missing)
         !ismissing(lat) && (fields[:position_lat] = (lat::Number) * 180.0 / (2^31))
