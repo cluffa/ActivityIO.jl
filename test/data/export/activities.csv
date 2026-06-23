@@ -3,3 +3,4 @@ Activity ID,Activity Name,Activity Type,Filename
 2,Afternoon Run,Run,activities/sample.gpx
 3,Evening Run,Run,activities/sample.tcx.gz
 4,Morning Ride,Ride,
+5,Trail Adventure,Trail Run,

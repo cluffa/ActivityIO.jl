@@ -102,16 +102,24 @@ const DATA = joinpath(@__DIR__, "data")
 
     @testset "load_export" begin
         export_dir = joinpath(DATA, "export")
+        # "Run" matches "Run" (3 rows) and "Trail Run" (1 row) via case-insensitive substring
         acts = load_export(export_dir; activity_type="Run")
         @test acts isa DataFrame
-        @test nrow(acts) == 3
+        @test nrow(acts) == 4
         @test hasproperty(acts, :data)
         @test all(r -> r isa DataFrame, acts.data)
         @test any(!isempty, acts.data)
+        # case-insensitive: lowercase input matches mixed-case values
+        acts_lower = load_export(export_dir; activity_type="run")
+        @test nrow(acts_lower) == 4
+        # Regex: exact case-insensitive match for "Run" only, not "Trail Run"
+        acts_exact = load_export(export_dir; activity_type=r"^Run$"i)
+        @test nrow(acts_exact) == 3
         # missing filename → empty DataFrame, not an error
         all_acts = load_export(export_dir)
-        @test nrow(all_acts) == 4
+        @test nrow(all_acts) == 5
         @test isempty(all_acts.data[4])
+        @test isempty(all_acts.data[5])
     end
 
     @testset "get_header" begin
@@ -132,10 +140,11 @@ const DATA = joinpath(@__DIR__, "data")
         # row 1 = FIT → has session header
         @test acts.header[1] isa Dict{Symbol,Any}
         @test acts.header[1][:start_time] isa DateTime
-        # row 2 = GPX, row 3 = TCX, row 4 = missing filename → all missing
+        # rows 2, 3, 4, 5 → all missing (GPX, TCX, missing filename ×2)
         @test ismissing(acts.header[2])
         @test ismissing(acts.header[3])
         @test ismissing(acts.header[4])
+        @test ismissing(acts.header[5])
     end
 
 end
