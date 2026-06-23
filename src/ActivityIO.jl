@@ -128,7 +128,14 @@ end
 
 function get_header(messages::Vector{FitMessage})::Union{Dict{Symbol,Any}, Missing}
     for msg in messages
-        msg.name == :session && return copy(msg.fields)
+        if msg.name == :session
+            h = copy(msg.fields)
+            s = get(h, :sport, missing)
+            !ismissing(s) && (h[:sport] = get(SPORT_NAMES, UInt8(s), Symbol("sport_", s)))
+            ss = get(h, :sub_sport, missing)
+            !ismissing(ss) && (h[:sub_sport] = get(SUB_SPORT_NAMES, UInt8(ss), Symbol("sub_sport_", ss)))
+            return h
+        end
     end
     return missing
 end
